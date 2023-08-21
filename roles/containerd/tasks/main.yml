@@ -1,0 +1,75 @@
+- name: Put required modules template
+  template:
+    src: k8s.conf.j2
+    dest: /etc/modules-load.d/k8s.conf
+    mode: 0644
+
+- name: "modprobe overlay"
+  modprobe:
+    name: overlay
+    state: present
+
+- name: "modprobe br_netfilter"
+  modprobe:
+    name: br_netfilter
+    state: present
+
+- name: Put k8s-cri template
+  template:
+    src: k8s-cri.conf.j2
+    dest: /etc/sysctl.d/k8s-cri.conf
+    mode: 0644
+
+- name: "sysctl"
+  shell: "sysctl --system"
+
+- name: Install required packages
+  apt:
+    name: "{{ packages }}"
+    state: present
+    update_cache: yes
+  vars:
+    packages:
+      - ca-certificates
+      - curl
+      - gnupg
+      - lsb-release
+
+- name: Add docker apt key
+  apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+
+- name: Add docker apt repo
+  apt_repository:
+    repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable
+    state: present
+
+- name: Update apt
+  apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install containerd
+  apt:
+    name: containerd.io
+    update_cache: true
+    state: present
+
+- name: Configure containerd
+  shell: containerd config default | tee /etc/containerd/config.toml
+
+- name: Set Cgroup driver to systemd
+  shell: sed -i 's/SystemdCgroup = false/SystemdCgroup = true/' /etc/containerd/config.toml
+
+- name: Restart containerd
+  systemd:
+    state: restarted
+    daemon_reload: yes
+    name: containerd
+
+- name: Put crictl template
+  template: 
+    src: crictl.yaml.j2
+    dest: /etc/crictl.yaml
+    mode: 0644

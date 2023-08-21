@@ -1,0 +1,12 @@
+all:
+  children:
+    kubernetes:
+      children:
+        masters:
+          hosts:
+            18.216.69.105:
+        nodes:
+          hosts:
+            52.15.193.92:
+            3.17.138.190:
+            

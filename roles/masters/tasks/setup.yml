@@ -1,0 +1,40 @@
+- name: Install kubectl
+  apt:
+    name: kubectl
+    update_cache: true
+    state: present
+
+- name: Kubeadm reset
+  shell: kubeadm reset -f
+  args:
+    chdir: $HOME
+
+- name: Initialize Kubernetes Cluster
+  shell: kubeadm init --cri-socket unix:///run/containerd/containerd.sock --pod-network-cidr 172.16.0.0/16 --ignore-preflight-errors NumCPU
+  args:
+    chdir: $HOME
+
+- name: Create .kube directory
+  file: 
+    path: $HOME/.kube
+    state: directory
+    owner: root
+    group: root
+    mode: 0775
+
+- name: Copy default cluster configuration
+  copy:
+    src: /etc/kubernetes/admin.conf
+    dest: $HOME/.kube/config
+    remote_src: yes
+    owner: root
+    group: root
+    mode: 0660    
+
+- name: Change config mode
+  file:
+    path: $HOME/.kube/config
+    state: file
+    owner: root
+    group: root 
+    mode: 0660
